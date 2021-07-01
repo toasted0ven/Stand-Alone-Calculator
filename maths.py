@@ -35,7 +35,7 @@ def cos (x):
         
 def sin (x):
     #work: error.... 
-    s = 0
+    s = 0.0
     tol = 1e-6
     for i in range (40):
         newTerm = (((-1)**i)*x**(2*i+1))/(factorial(2*i+1))
