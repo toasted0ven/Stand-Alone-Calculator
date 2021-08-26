@@ -1,8 +1,15 @@
-# decoder thing
-# just looking at making a bunch of smaller functions rather than the whole decoder
-# in one big go
+'''
+Author: Andrew Close
+Date: 26/08/2021
+Description:
+This script deals with interpreting the user input and resolving it into the
+mathematical commands that need to be completed to output the final answer.
+The main functions are the text to list function which translates the text input
+into a list of individual components, and the decoder which takes that list and
+using order of operations logic determines the order in which to complete the
+tasks.
 
-''' overview:
+overview:
 inherited functions from previous versions:
 list_search_r - reverse list search used for finding brackets
 list_search - similar to index method but allows a later starting point
@@ -14,25 +21,11 @@ do_simple_maths - deals with most of bedmas operations, but not order of ops
 order_of_ops - calls relevant do_simple_maths based on order of ops
 run_an_op - impliments each level of the order of ops - helper to order_of_ops
 decoder - deals with brackets, calling functions and calling order of ops
-
-
-'''
-
-''' Testing results
-order_of_ops       - passes
-run_an_op          - passes
-call_fun           - requires further testing
-do_simple_maths    - passes
-decoder            - requires further testing
-list_search_r      - passes
-list_search        - passes
-text_to_list       - bug with ^ not with spaces included
-
 '''
 
 from maths import *
 
-def decoder(list_x):
+def decoder(list_x, angle_setting='rad'):
     # here we could be given anything. First task is to check for brackets
 
     # bracket balance
@@ -47,9 +40,9 @@ def decoder(list_x):
         num_open = 1
     while num_open > 0:
         # this needs to take the number of brackets down each loop
-        # we need to go into the inner most bracket
+        # we need to go into the inner most bracket - this is done by going to the last open bracket and the next closed one
         # then we need to check whats in the bracket - ie is it one or more terms and are they simple or not
-        # also we need to check whats outside the - if there is like a sin or cos
+        # also we need to check whats outside the - if there is like a function such as sin or cos
         # I think we can assume that the functions can only work with brackets involved
         num_open = list_x.count('(')
         last_open, last_open_checker = list_search_r(list_x, '(')
@@ -72,9 +65,7 @@ def decoder(list_x):
                 return False
         else:
             # if we are inside a bracket, then there can only be simple maths
-            #print(f'running order of ops on {mini_list}')
             number = order_of_ops(mini_list)
-                # I think this means that its just a number in a list
             try:
                 number = float(number[0])
             except ValueError:
@@ -96,22 +87,23 @@ def decoder(list_x):
             if last_open != 0: # check that the bracket we are investigating is not at the start
                 function = list_x[last_open - 1]
                 if function in func_list:
-                    number = call_fun(function, number)
+                    number = call_fun(function, number, angle_setting)
                     list_x.pop(last_open - 1) # remove the function
                 else:
                     function = False
             if function:
                 list_x[last_open - 1] = number  # this is because the function shifts the location by 1
             else:
-                list_x[last_open] = number
-            
-    return number        
+                list_x[last_open] = number            
+    return number
+
             
 def order_of_ops(list_x):
     # we start here with a list that contains not brackets - only arithmatic
     for i in ['^', ['x', '/'], ['+', '-']]:
         list_x = run_an_op(i, list_x)
     return list_x
+
 
 def run_an_op(symbol, list_x):
     if len(symbol) == 2:
@@ -159,7 +151,11 @@ def run_an_op(symbol, list_x):
                 list_x.pop(index)#this will be equiv of index +1 after the other pop command
     return list_x
 
-def call_fun(func, x):
+
+def call_fun(func, x, angle_setting):
+    if func in ['sin', 'cos', 'tan']:
+        if angle_setting == 'deg':
+            x = deg_to_rad(x)
     if func == func_list[0]:
         # sin
         ans = sin(x)
@@ -167,29 +163,43 @@ def call_fun(func, x):
         # cos
         ans = cos(x)
     elif func == func_list[2]:
+        # tan
+        return tan(x)
+    elif func == func_list[3]:
         # asin
         ans = arcsin(x)
-    elif func == func_list[3]:
+    elif func == func_list[4]:
         # acos
         ans = arccos(x)
-    elif func == func_list[4]:
+    elif func == func_list[5]:
         # atan
         ans = arctan(x)
-    elif func == func_list[5]:
+    elif func == func_list[6]:
         # factorial
         ans = factorial(x)
-    elif func == func_list[6]:
+    elif func == func_list[7]:
         # exp
         ans = exp(x)
-    elif func == func_list[7]:
+    elif func == func_list[8]:
         # sqrt
         ans = sqrt(x)
-    elif func == func_list[8]:
+    elif func == func_list[9]:
         # abs
         ans = absolute(x)
+    elif func == func_list[10]:
+        # ln
+        ans = ln(x)
+    elif func == func_list[11]:
+        # log
+        return log(10, x) # currently no implementation for the base, default to 10
     else:
         ans = False
+    if func in ['asin', 'acos', 'atan']:
+        if angle_setting == 'deg':
+            # we need to convert the answer back to degrees from radians
+            ans = rad_to_deg(ans)        
     return ans
+
 
 def do_simple_maths(a, b, operator):
     # note this function does not care about order of ops
@@ -206,6 +216,7 @@ def do_simple_maths(a, b, operator):
     else:
         return False
 
+
 def list_search_r(a, match):
     # small module to search a list for a match from the end to the front
     for i in range(len(a) - 1, -1, -1):
@@ -220,6 +231,7 @@ def list_search(a, match, start=0):
         if a[i] == match:
             return i
     return False
+
 
 def text_to_list(text):
     # Initialise the list
@@ -273,9 +285,10 @@ def text_to_list(text):
 
 
 # this list is so that the code can search the item prior to the brackets to check if it should run a function
-func_list = ["sin", "cos", "asin", "acos", "atan", "fact", "exp", "SQRT", "abs"]
+func_list = ["sin", "cos", "tan", "asin", "acos", "atan", "fact", "exp", "SQRT", "abs", "ln", "log"]
 operands = ['^', 'x', '/', '+', '-']
 
+# testing zone - will only run if this is the script that is run, not imported
 test = {
     'do_simple_maths': False,
     'run_an_op': False,
@@ -286,7 +299,6 @@ test = {
     'call_fun': False
         }
 
-# testing zone
 def testing(test):
         
     # testing do simple maths
